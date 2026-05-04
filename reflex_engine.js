@@ -1,0 +1,283 @@
+import { auth, fs, doc, getDoc, updateDoc, increment, setDoc } from "../firebase-config.js";
+import { GAME_MAP } from "./smackkiq.js";
+
+// ─── Game State ───────────────────────────────────────────────────────────────
+let gameState = {
+    mode: null, // 'endless', 'focus', 'random'
+    score: 0,
+    highScore: 0,
+    timer: 0,
+    isActive: false,
+    currentLevel: 1,
+    gameInstance: null,
+    focusGameId: null
+};
+
+const UI = {
+    area: document.getElementById('reflex-game-area'),
+    overlay: document.getElementById('reflex-overlay'),
+    startScreen: document.getElementById('start-screen'),
+    gameOverScreen: document.getElementById('game-over-screen'),
+    score: document.getElementById('current-score'),
+    best: document.getElementById('best-score'),
+    timerContainer: document.getElementById('timer-container'),
+    timer: document.getElementById('game-timer'),
+    flash: document.getElementById('flash-overlay'),
+    finalScore: document.getElementById('final-score'),
+    newBest: document.getElementById('new-best-score'),
+    bestBox: document.getElementById('high-score-box')
+};
+
+// ─── Sounds (Subtle) ──────────────────────────────────────────────────────────
+const SOUNDS = {
+    success: 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3',
+    error: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'
+};
+
+function playSound(type) {
+    try {
+        const audio = new Audio(SOUNDS[type]);
+        audio.volume = 0.2;
+        audio.play().catch(() => {});
+    } catch(e) {}
+}
+
+// ─── Core Loop ────────────────────────────────────────────────────────────────
+
+// Delegated Listener for Reflex Input
+UI.area.addEventListener('click', (e) => {
+    if (!gameState.isActive) return;
+    
+    const selectors = '.cg-choice-btn, .cg-color-btn, .cg-num-btn, .cg-mem-cell, .cg-shape-opt, .cg-pixel-cell, .cg-word-opt, .cg-word-btn, .cg-jig-opt, .cg-btile, .cg-dot-opt, .cg-odd-cell, .cg-arrow-opt, .cg-vector-opt, .cg-size-btn, .cg-rot-btn, .cg-math-opt';
+    const target = e.target.closest(selectors);
+    
+    if (target) {
+        // We wait a tiny bit to allow the element's own onclick to update game state
+        setTimeout(() => {
+            if (gameState.gameInstance) {
+                handleResult(gameState.gameInstance.verify(), gameState.gameInstance);
+            }
+        }, 0);
+    }
+});
+
+window.startReflexGame = async function(mode, gameId = null) {
+    try {
+        gameState.mode = mode;
+        gameState.score = 0;
+        gameState.isActive = true;
+        gameState.currentLevel = 1;
+        gameState.focusGameId = gameId !== null ? parseInt(gameId) : null;
+
+        await loadHighScore();
+
+        UI.overlay.classList.remove('active');
+        UI.startScreen.style.display = 'none';
+        UI.gameOverScreen.style.display = 'none';
+        UI.score.textContent = "0";
+
+        // Always 30s Blitz style
+        gameState.timer = 30.0;
+        UI.timerContainer.style.display = 'block';
+        startTimer();
+
+        loadNextChallenge();
+    } catch (err) {
+        console.error("Failed to start reflex game:", err);
+    }
+};
+
+async function updateStartMenuHighScores() {
+    const user = auth.currentUser;
+    if (!user) return;
+    const userRef = doc(fs, "users", user.uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        document.getElementById('best-endless').textContent = data.reflex_best_endless || 0;
+        document.getElementById('best-focus').textContent = data.reflex_best_focus || 0;
+        document.getElementById('best-random').textContent = data.reflex_best_random || 0;
+    }
+}
+
+function loadNextChallenge() {
+    if (!gameState.isActive) return;
+
+    UI.area.style.transform = 'scale(0.95)';
+    UI.area.style.opacity = '0.5';
+
+    setTimeout(() => {
+        try {
+            UI.area.innerHTML = "";
+            let gData;
+            const reflexPool = GAME_MAP.filter(g => g.reflex);
+            
+            if (gameState.mode === 'focus' && gameState.focusGameId !== null) {
+                gData = GAME_MAP.find(g => g.id === gameState.focusGameId);
+            } else {
+                gData = reflexPool[Math.floor(Math.random() * reflexPool.length)];
+            }
+
+            if (!gData) throw new Error("No game data found");
+
+            const game = gData.fn();
+            gameState.gameInstance = game;
+            
+            game.render(UI.area);
+            // No longer need attachReflexListeners due to delegation
+
+            UI.area.style.transform = 'scale(1)';
+            UI.area.style.opacity = '1';
+        } catch (err) {
+            console.error("Error loading challenge:", err);
+            loadNextChallenge(); // Skip broken game
+        }
+    }, 10);
+}
+
+
+function handleResult(isCorrect, game) {
+    if (!gameState.isActive) return;
+
+    if (isCorrect) {
+        gameState.score++;
+        UI.score.textContent = gameState.score;
+        playSound('success');
+        flashScreen('success');
+        loadNextChallenge();
+    } else if (game && game.isWrong) {
+        // Only fail (shake/skip) if definitively wrong
+        playSound('error');
+        flashScreen('error');
+        shakeGameArea();
+        if (navigator.vibrate) navigator.vibrate(200);
+        loadNextChallenge();
+    }
+    // Else: it's false but not wrong (incomplete), so do nothing.
+}
+
+function shakeGameArea() {
+    UI.area.classList.add('shake');
+    setTimeout(() => UI.area.classList.remove('shake'), 400);
+}
+
+function flashScreen(type) {
+    if (!UI.flash) return;
+    UI.flash.className = type === 'success' ? 'flash-success' : 'flash-error';
+    setTimeout(() => { if (UI.flash) UI.flash.className = ''; }, 200);
+}
+
+function startTimer() {
+    if (window.reflexTimer) clearInterval(window.reflexTimer);
+    window.reflexTimer = setInterval(() => {
+        if (!gameState.isActive || gameState.mode !== 'focus') {
+            clearInterval(window.reflexTimer);
+            return;
+        }
+
+        gameState.timer -= 0.1;
+        if (UI.timer) UI.timer.textContent = gameState.timer.toFixed(1);
+        
+        if (gameState.timer <= 5) UI.timer?.classList.add('warning');
+        
+        if (gameState.timer <= 0) {
+            gameState.timer = 0;
+            if (UI.timer) UI.timer.textContent = "0.0";
+            clearInterval(window.reflexTimer);
+            endGame("Time's Up!");
+        }
+    }, 100);
+}
+
+async function endGame(msg = "Game Over") {
+    gameState.isActive = false;
+    if (window.reflexTimer) clearInterval(window.reflexTimer);
+    playSound('error');
+    flashScreen('error');
+
+    let isNewBest = false;
+    const bestKey = `reflex_best_${gameState.mode === 'focus' ? `focus_${gameState.focusGameId}` : gameState.mode}`;
+    
+    if (gameState.score > (gameState.highScores[bestKey] || 0)) {
+        gameState.highScores[bestKey] = gameState.score;
+        isNewBest = true;
+        await saveHighScore(bestKey);
+    }
+
+    UI.overlay.classList.add('active');
+    UI.startScreen.style.display = 'none';
+    UI.gameOverScreen.style.display = 'block';
+    
+    document.getElementById('result-title').textContent = msg;
+    document.getElementById('final-score').textContent = gameState.score;
+    
+    if (isNewBest) {
+        UI.bestBox.style.display = 'block';
+        UI.newBest.textContent = gameState.score;
+        document.getElementById('result-icon').textContent = "🏆";
+    } else {
+        UI.bestBox.style.display = 'none';
+        document.getElementById('result-icon').textContent = "💀";
+    }
+}
+
+window.restartReflexGame = function() {
+    startReflexGame(gameState.mode, gameState.focusGameId);
+};
+
+window.exitToMenu = function() {
+    window.location.href = "smackKIQ.html";
+};
+
+// ─── Data Management ─────────────────────────────────────────────────────────
+gameState.highScores = {};
+
+async function loadHighScore() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = doc(fs, "users", user.uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+        gameState.highScores = userDoc.data().reflex_scores || {};
+        const bestKey = `reflex_best_${gameState.mode === 'focus' ? `focus_${gameState.focusGameId}` : gameState.mode}`;
+        UI.best.textContent = gameState.highScores[bestKey] || 0;
+    }
+}
+
+async function saveHighScore(key) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = doc(fs, "users", user.uid);
+    await setDoc(userRef, {
+        reflex_scores: gameState.highScores
+    }, { merge: true });
+
+    if (gameState.mode === 'random') {
+        const lbRef = doc(fs, "reflex_leaderboard", user.uid);
+        await setDoc(lbRef, {
+            name: user.displayName || user.email.split('@')[0],
+            score: gameState.highScores[key],
+            updatedAt: Date.now()
+        }, { merge: true });
+    }
+}
+
+// ─── Initialization ──────────────────────────────────────────────────────────
+auth.onAuthStateChanged(user => {
+    if (user) {
+        // Check for URL parameters to auto-start a mode
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode');
+        const gameId = params.get('gameId');
+
+        if (mode) {
+            startReflexGame(mode, gameId !== null ? parseInt(gameId) : null);
+        } else {
+            updateStartMenuHighScores();
+        }
+    } else {
+        window.location.href = "index.html";
+    }
+});

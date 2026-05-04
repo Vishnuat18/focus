@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>smackKIQ | Logic Challenges</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="../logo.png">
+</head>
+
+<body>
+    <nav class="navbar glass">
+        <div class="logo">
+            <img src="../logo.png" alt="SMACK" style="width: 32px; height: 32px; border-radius: 8px;">
+            <span>SMACK</span>
+        </div>
+        <div class="nav-links">
+            <a href="../home.html">Home</a>
+            <a href="smackKIQ.html" class="active">smackKIQ</a>
+            <a href="../resources.html">Materials</a>
+            <a href="../profile.html" class="profile-link" style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main); font-weight: 600;">
+                <div id="nav-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: white;">U</div>
+                <span id="nav-user-name">Profile</span>
+            </a>
+            <a href="../index.html" class="logout"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </nav>
+
+    <header class="app-header glass">
+        <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <a href="../home.html" style="color: white; font-size: 1.1rem; margin-right: 0.5rem;"><i class="fas fa-arrow-left"></i></a>
+            <img src="../logo.png" alt="SMACK" style="width: 32px; height: 32px; border-radius: 6px;">
+            <h2 style="font-family: 'Outfit'; font-size: 1.2rem;">smackKIQ</h2>
+        </div>
+        <div class="points-display glass" style="padding: 0.4rem 1rem; border-radius: 20px; display: flex; align-items: center; gap: 0.6rem; background: rgba(99, 102, 241, 0.15);">
+            <i class="fas fa-trophy" style="color: #fbbf24;"></i>
+            <span id="points-val" style="font-weight: 800; font-family: 'Outfit';">0</span>
+            <span style="font-size: 0.7rem; opacity: 0.7;">XP</span>
+        </div>
+    </header>
+
+    <div class="container" style="padding-top: 2rem;">
+        <div class="dashboard-header" style="margin-bottom: 2.5rem; text-align: center;">
+            <h1 style="font-family: 'Outfit'; font-size: 2.2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">smackKIQ Dashboard</h1>
+            <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">Master 26 unique logic challenges, sharpen your focus, and climb the leaderboard. Each victory earns you XP!</p>
+        </div>
+
+        <!-- Reflex Mode Banner -->
+        <div class="glass" style="margin-bottom: 2.5rem; padding: 2rem; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; gap: 2rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; position: relative;">
+            <div style="z-index: 1;">
+                <div class="badge" style="background: var(--reflex-accent, #6366f1); color: white; margin-bottom: 1rem;">NEW CHALLENGE</div>
+                <h2 style="font-family: 'Outfit'; font-size: 1.8rem; margin-bottom: 0.5rem;">Reflex Mastery</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; max-width: 450px;">
+                    Test your speed in Endless, Focus, and Random Chaos modes. How many logic puzzles can you solve in a row?
+                </p>
+                <a href="reflex_game.html" class="glass" style="padding: 0.8rem 1.5rem; border-radius: 12px; background: #6366f1; color: white; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 0.8rem;">
+                    PLAY REFLEX MODE <i class="fas fa-bolt"></i>
+                </a>
+            </div>
+            <div style="font-size: 6rem; opacity: 0.1; position: absolute; right: -20px; top: -10px; transform: rotate(15deg);">
+                <i class="fas fa-bolt"></i>
+            </div>
+        </div>
+
+        <div id="reflex-game-grid" class="game-grid">
+            <!-- Games will be injected by smackkiq.js -->
+        </div>
+    </div>
+
+    <!-- Captcha Modal (for Practice/Training) -->
+    <div id="captcha-backdrop">
+        <div id="captcha-modal">
+            <div class="cg-header">
+                <div class="cg-title-row">
+                    <i class="fas fa-gamepad" style="color:#6366f1;"></i>
+                    <span style="font-family:'Outfit';font-weight:700;font-size:1rem;">smackKIQ Challenge</span>
+                    <span class="cg-beta-badge">Practice</span>
+                </div>
+                <button class="cg-close-btn" id="cg-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="cg-game-label" class="cg-game-label">Loading challenge...</div>
+            <div id="cg-step-label" class="cg-step-label">Practice Mode</div>
+            <div id="cg-progress" class="cg-progress"></div>
+            <div id="cg-game-area"></div>
+            <div id="cg-msg"></div>
+            <div class="cg-footer">
+                <button id="cg-skip-btn"><i class="fas fa-refresh"></i> New Seed</button>
+                <button id="cg-focus-btn" style="background: var(--reflex-accent, #6366f1); color: white;"><i class="fas fa-bullseye"></i> Start Focus (30s)</button>
+                <button id="cg-verify-btn"><i class="fas fa-check-circle"></i> Verify Answer</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; padding: 3rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
+        <p>&copy; 2026 SMACK Semester 6 Portal. Gamified Learning System.</p>
+    </footer>
+
+    <!-- Mobile Nav Foot (Sync with Home) -->
+    <div class="mobile-nav-foot glass">
+        <a href="../home.html"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="smackKIQ.html" class="active"><i class="fas fa-brain"></i><span>smackKIQ</span></a>
+        <a href="../resources.html"><i class="fas fa-file-alt"></i><span>Notes</span></a>
+        <a href="../profile.html"><i class="fas fa-user-circle"></i><span>Profile</span></a>
+    </div>
+
+    <script type="module" src="../firebase-config.js"></script>
+    <script type="module">
+        import { auth, fs, doc, getDoc } from "../firebase-config.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userRef = doc(fs, "users", user.uid);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    document.getElementById('nav-user-name').textContent = data.name || "User";
+                    document.getElementById('nav-avatar').textContent = (data.name || "U")[0].toUpperCase();
+                }
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+    <script type="module" src="smackkiq.js"></script>
+</body>
+</html>

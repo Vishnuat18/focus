@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>smackKIQ Reflex | Fast-Paced Logic</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="../logo.png">
+    <style>
+        :root {
+            --reflex-bg: #0f172a;
+            --reflex-accent: #6366f1;
+            --reflex-success: #10b981;
+            --reflex-error: #ef4444;
+        }
+
+        body.reflex-mode {
+            background: var(--reflex-bg);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .hud {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            position: absolute;
+            top: 0;
+            z-index: 10;
+        }
+
+        .score-box, .timer-box {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 0.8rem 1.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .score-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 2px; }
+        .score-val { font-size: 1.5rem; font-weight: 800; font-family: 'Outfit'; }
+
+        #reflex-game-area {
+            width: 100%;
+            max-width: 500px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* End Screen Overlay */
+        #reflex-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        #reflex-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay-card {
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .mode-selector {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mode-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--reflex-accent);
+            transform: translateY(-5px);
+        }
+
+        .mode-btn i { font-size: 2rem; color: var(--reflex-accent); }
+        .mode-title { font-weight: 700; font-size: 1.1rem; display: block; }
+        .mode-desc { font-size: 0.8rem; opacity: 0.6; }
+
+        /* Timer animation */
+        .timer-val.warning { color: var(--reflex-error); animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* Screen Flash */
+        .flash-success { animation: flashSuccess 0.3s ease-out; }
+        .flash-error { animation: flashError 0.4s ease-out; }
+        @keyframes flashSuccess { 0% { background: rgba(16, 185, 129, 0.1); } 100% { background: transparent; } }
+        @keyframes flashError { 0% { background: rgba(239, 68, 68, 0.3); } 100% { background: transparent; } }
+
+        /* Shake Animation */
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Particle effects for high score */
+        .confetti { position: absolute; pointer-events: none; }
+    </style>
+</head>
+
+<body class="reflex-mode">
+    <div id="flash-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:50;"></div>
+
+    <div class="hud">
+        <div class="score-box">
+            <div class="score-label">Current</div>
+            <div id="current-score" class="score-val">0</div>
+        </div>
+        <div id="timer-container" class="timer-box" style="display: none;">
+            <div class="score-label">Time</div>
+            <div id="game-timer" class="score-val">30.0</div>
+        </div>
+        <div class="score-box">
+            <div class="score-label">Best</div>
+            <div id="best-score" class="score-val">0</div>
+        </div>
+    </div>
+
+    <main class="game-viewport">
+        <div id="reflex-game-area">
+            <!-- Mini-games load here -->
+        </div>
+    </main>
+
+    <!-- Start/End Overlay -->
+    <div id="reflex-overlay" class="active">
+        <div id="start-screen" class="overlay-card">
+            <img src="../logo.png" style="width: 80px; margin-bottom: 1rem; border-radius: 20px;">
+            <h1 style="font-family: 'Outfit'; font-size: 2.5rem; margin-bottom: 0.5rem;">smackKIQ Reflex</h1>
+            <p style="color: var(--text-muted);">Unforgiving speed, instant choices.</p>
+            
+            <div class="mode-selector">
+                <button class="mode-btn" onclick="startReflexGame('endless')">
+                    <i class="fas fa-infinity"></i>
+                    <div style="flex: 1;">
+                        <span class="mode-title">Endless Mode</span>
+                        <span class="mode-desc">Survive as long as you can. No mistakes allowed.</span>
+                    </div>
+                    <div class="glass" style="padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.8rem; text-align: center;">
+                        <div style="opacity: 0.5; font-size: 0.6rem;">BEST</div>
+                        <div id="best-endless" style="font-weight: 800;">0</div>
+                    </div>
+                </button>
+                <button class="mode-btn" onclick="startReflexGame('focus')">
+                    <i class="fas fa-bullseye"></i>
+                    <div style="flex: 1;">
+                        <span class="mode-title">Focus (30s)</span>
+                        <span class="mode-desc">High intensity. One game, 30 seconds.</span>
+                    </div>
+                    <div class="glass" style="padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.8rem; text-align: center;">
+                        <div style="opacity: 0.5; font-size: 0.6rem;">BEST</div>
+                        <div id="best-focus" style="font-weight: 800;">0</div>
+                    </div>
+                </button>
+                <button class="mode-btn" onclick="startReflexGame('random')">
+                    <i class="fas fa-random"></i>
+                    <div style="flex: 1;">
+                        <span class="mode-title">Random Chaos</span>
+                        <span class="mode-desc">Unpredictable challenges. Leaderboard active.</span>
+                    </div>
+                    <div class="glass" style="padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.8rem; text-align: center;">
+                        <div style="opacity: 0.5; font-size: 0.6rem;">BEST</div>
+                        <div id="best-random" style="font-weight: 800;">0</div>
+                    </div>
+                </button>
+            </div>
+            
+            <a href="smackKIQ.html" style="display: block; margin-top: 2rem; color: var(--text-muted); text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Back to smackKIQ
+            </a>
+        </div>
+
+        <div id="game-over-screen" class="overlay-card" style="display: none;">
+            <div id="result-icon" style="font-size: 4rem; margin-bottom: 1.5rem;">💀</div>
+            <h2 id="result-title" style="font-family: 'Outfit'; font-size: 2.5rem; margin-bottom: 0.5rem;">Game Over</h2>
+            <p id="result-msg" style="color: var(--text-muted); margin-bottom: 2rem;">You hesitated for a second too long.</p>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
+                <div class="score-box" style="flex: 1;">
+                    <div class="score-label">Final Score</div>
+                    <div id="final-score" class="score-val" style="color: var(--reflex-accent);">0</div>
+                </div>
+                <div class="score-box" style="flex: 1;" id="high-score-box">
+                    <div class="score-label">New Best!</div>
+                    <div id="new-best-score" class="score-val" style="color: var(--reflex-success);">0</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                <button class="glass" onclick="restartReflexGame()" style="padding: 1.2rem; border-radius: 12px; font-weight: 700; background: var(--reflex-accent); border: none; color: white;">
+                    RETAKE CHALLENGE
+                </button>
+                <button class="glass" onclick="exitToMenu()" style="padding: 1.2rem; border-radius: 12px; font-weight: 700;">
+                    MAIN MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="reflex_engine.js"></script>
+</body>
+</html>
