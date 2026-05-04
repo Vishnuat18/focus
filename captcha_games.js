@@ -7,6 +7,13 @@
 const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
+const MASTER_WORD_POOL = [
+    'PLANET', 'SCHOOL', 'BRIDGE', 'DREAM', 'GALAXY', 'FLOWER', 'ORANGE', 'BRIGHT',
+    'SILENT', 'HEART', 'STUDY', 'ELBOW', 'GLEAN', 'FOSTER', 'STREAM', 'THING',
+    'SLIVER', 'COFFEE', 'GUITAR', 'PENCIL', 'WINDOW', 'BOTTLE', 'CAMERA', 'CHURCH',
+    'MARKET', 'DESERT', 'FOREST', 'SQUARE', 'CIRCLE', 'STORM', 'WINTER', 'SUMMER'
+];
+
 // ─── Game 1: Shape Equality ───────────────────────────────────────────────────
 // Uses SVG shape pairs — no emoji
 export function imageEqualityGame() {
@@ -1924,17 +1931,15 @@ export function wordHuntGame() {
 // ─── Game 29: Number Flash (Find the Target) ──────────────────────────────────
 export function numberFlashGame() {
     const target = Math.floor(Math.random() * 9) + 1; // 1-9
-    // Pick 9 unique numbers including the target
     const pool = [1,2,3,4,5,6,7,8,9];
     const options = shuffle(pool);
     let userAnswer = null;
 
     return {
-        title: ``, // We'll show the target in a big box instead of the title string
+        title: ``,
         render(container) {
             container.innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;width:100%;">
-                    <!-- Target Bar -->
                     <div style="
                         width:100%; max-width:240px; 
                         background:rgba(255,255,255,0.06); 
@@ -1949,7 +1954,6 @@ export function numberFlashGame() {
                         <div style="font-size:3.5rem; font-weight:900; color:white; font-family:'Outfit'; line-height:1;">${target}</div>
                     </div>
 
-                    <!-- 3x3 Grid -->
                     <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:fit-content; padding:10px;">
                         ${options.map((n) => `
                             <button class="cg-num-btn" data-val="${n}" style="
@@ -1977,7 +1981,6 @@ export function numberFlashGame() {
                 btn.onclick = () => {
                     userAnswer = parseInt(btn.dataset.val);
                     if (userAnswer !== target) this.isWrong = true;
-                    // Note: reflex_engine will handle the correct answer and trigger a reload
                 };
             });
         },
@@ -1987,50 +1990,97 @@ export function numberFlashGame() {
 
 // ─── Game 30: Green Rush (Avoid Red) ──────────────────────────────────────────
 export function greenVsRedGame() {
-    const GRID_SIZE = 20;
-    const cells = Array.from({ length: GRID_SIZE }, (_, i) => ({ id: i, color: 'neutral' }));
-    
-    // Pick 3 green, 5 red
-    const shuffledIdx = shuffle(Array.from({ length: GRID_SIZE }, (_, i) => i));
-    const greenIdx = shuffledIdx.slice(0, 3);
-    const redIdx = shuffledIdx.slice(3, 8);
-    
-    greenIdx.forEach(i => cells[i].color = 'green');
-    redIdx.forEach(i => cells[i].color = 'red');
-
+    const GRID_SIZE = 16;
+    let activeIdx = -1;
+    let activeColor = 'neutral';
     let userAnswer = null;
+    let autoSkipTimer = null;
+
+    const spawn = () => {
+        if (userAnswer === 'correct') return;
+        
+        activeIdx = Math.floor(Math.random() * GRID_SIZE);
+        activeColor = Math.random() > 0.4 ? 'green' : 'red';
+        
+        const cells = document.querySelectorAll('.cg-rush-cell');
+        if (!cells.length) return;
+
+        cells.forEach(c => {
+            c.style.background = 'rgba(255,255,255,0.03)';
+            c.style.boxShadow = 'none';
+            c.style.borderColor = 'rgba(255,255,255,0.08)';
+            c.classList.remove('active-green', 'active-red');
+        });
+
+        const target = cells[activeIdx];
+        if (target) {
+            target.classList.add(activeColor === 'green' ? 'active-green' : 'active-red');
+            if (activeColor === 'green') {
+                target.style.background = '#10b981';
+                target.style.boxShadow = '0 0 25px rgba(16,185,129,0.5)';
+                target.style.borderColor = '#34d399';
+            } else {
+                target.style.background = '#ef4444';
+                target.style.boxShadow = '0 0 25px rgba(239,68,68,0.5)';
+                target.style.borderColor = '#f87171';
+            }
+        }
+
+        if (autoSkipTimer) clearTimeout(autoSkipTimer);
+        autoSkipTimer = setTimeout(() => {
+            if (!userAnswer) spawn();
+        }, 1000);
+    };
 
     return {
-        title: 'TAP A GREEN CELL — AVOID RED!',
+        title: 'TAP GREEN — IGNORE RED!',
         render(container) {
             container.innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;">
-                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:fit-content;">
-                        ${cells.map(c => `
-                            <div class="cg-rush-cell" data-color="${c.color}" style="
-                                width:45px; height:45px; border-radius:8px;
-                                background:${c.color === 'green' ? '#10b981' : c.color === 'red' ? '#ef4444' : 'rgba(255,255,255,0.05)'};
-                                border:1.5px solid rgba(255,255,255,0.1); cursor:pointer;
-                                transition:all 0.15s;
-                                box-shadow:${c.color === 'green' ? '0 0 10px rgba(16,185,129,0.3)' : c.color === 'red' ? '0 0 10px rgba(239,68,68,0.3)' : 'none'};
+                <style>
+                    @keyframes pulse-active {
+                        0% { transform: scale(1); filter: brightness(1); }
+                        50% { transform: scale(1.08); filter: brightness(1.2); }
+                        100% { transform: scale(1); filter: brightness(1); }
+                    }
+                    .active-green, .active-red { animation: pulse-active 0.6s ease-in-out infinite; z-index: 10; }
+                </style>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;width:100%;">
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:fit-content;padding:10px;">
+                        ${Array.from({ length: GRID_SIZE }, (_, i) => `
+                            <div class="cg-rush-cell" data-idx="${i}" style="
+                                width:55px; height:55px; border-radius:16px;
+                                background:rgba(255,255,255,0.03); border:2px solid rgba(255,255,255,0.08);
+                                cursor:pointer; transition:all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+                                position:relative;
                             "></div>
                         `).join('')}
                     </div>
                 </div>`;
             
             container.querySelectorAll('.cg-rush-cell').forEach(cell => {
-                cell.onclick = () => {
-                    const color = cell.dataset.color;
-                    if (color === 'green') {
-                        userAnswer = 'correct';
-                    } else if (color === 'red') {
-                        this.isWrong = true;
-                        userAnswer = 'wrong';
+                cell.addEventListener('mousedown', (e) => {
+                    const idx = parseInt(cell.dataset.idx);
+                    if (idx === activeIdx) {
+                        if (activeColor === 'green') {
+                            userAnswer = 'correct';
+                            cell.style.transform = 'scale(0.9)';
+                        } else {
+                            this.isWrong = true;
+                            userAnswer = 'wrong';
+                        }
+                    } else {
+                        // Clicking outside the active cell is now ignored or subtle penalty
+                        // To keep it "workable", we'll ignore neutral clicks
                     }
-                };
+                });
             });
+
+            setTimeout(spawn, 300);
         },
-        verify() { return userAnswer === 'correct'; }
+        verify() { 
+            if (autoSkipTimer) clearTimeout(autoSkipTimer);
+            return userAnswer === 'correct'; 
+        }
     };
 }
 
@@ -2092,30 +2142,38 @@ export function colorGridGame() {
 // ─── Game 32: Gesture Swipe (Swipe Direction) ────────────────────────────────
 export function swipeDirectionGame() {
     const directions = [
-        { key: 'arrow_u', label: 'UP',    angle: 0 },
-        { key: 'arrow_d', label: 'DOWN',  angle: 180 },
-        { key: 'arrow_l', label: 'LEFT',  angle: 270 },
-        { key: 'arrow_r', label: 'RIGHT', angle: 90 }
+        { key: 'arrow_u', label: 'UP',    angle: 0,    icon: 'fa-chevron-up' },
+        { key: 'arrow_d', label: 'DOWN',  angle: 180,  icon: 'fa-chevron-down' },
+        { key: 'arrow_l', label: 'LEFT',  angle: 270,  icon: 'fa-chevron-left' },
+        { key: 'arrow_r', label: 'RIGHT', angle: 90,   icon: 'fa-chevron-right' }
     ];
     const target = rnd(directions);
     let startX, startY;
     let swipedDir = null;
 
     return {
-        title: `SWIPE ${target.label}`,
+        title: `SWIPE OR TAP ${target.label}`,
         render(container) {
             container.innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;width:100%;">
                     <div id="swipe-zone" style="
-                        width:180px; height:180px; border-radius:50%;
+                        width:150px; height:150px; border-radius:50%;
                         background:rgba(255,255,255,0.05); border:2px dashed rgba(99,102,241,0.4);
                         display:flex; align-items:center; justify-content:center;
                         touch-action:none; position:relative; cursor:grab;">
                         <div style="color:#6366f1; transform:rotate(${target.angle}deg); filter:drop-shadow(0 0 10px rgba(99,102,241,0.5));">
-                            ${SVG_ICONS['arrow_u'].replace('width="48" height="48"','width="80" height="80"')}
+                            ${SVG_ICONS['arrow_u'].replace('width="48" height="48"','width="70" height="70"')}
                         </div>
                     </div>
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);font-weight:700;letter-spacing:1px;">DRAG IN ARROW DIRECTION</div>
+                    
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 200px;">
+                        <div></div>
+                        <button class="cg-arrow-opt" data-dir="UP" style="padding:12px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;"><i class="fas fa-chevron-up"></i></button>
+                        <div></div>
+                        <button class="cg-arrow-opt" data-dir="LEFT" style="padding:12px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;"><i class="fas fa-chevron-left"></i></button>
+                        <button class="cg-arrow-opt" data-dir="DOWN" style="padding:12px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;"><i class="fas fa-chevron-down"></i></button>
+                        <button class="cg-arrow-opt" data-dir="RIGHT" style="padding:12px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;"><i class="fas fa-chevron-right"></i></button>
+                    </div>
                 </div>`;
             
             const zone = container.querySelector('#swipe-zone');
@@ -2130,25 +2188,27 @@ export function swipeDirectionGame() {
             zone.onpointerup = (e) => {
                 zone.releasePointerCapture(e.pointerId);
                 zone.style.cursor = 'grab';
-                
                 const diffX = e.clientX - startX;
                 const diffY = e.clientY - startY;
-                const minDist = 40;
-
+                const minDist = 30;
+                let dir = null;
                 if (Math.abs(diffX) > Math.abs(diffY)) {
-                    if (Math.abs(diffX) > minDist) swipedDir = diffX > 0 ? 'RIGHT' : 'LEFT';
+                    if (Math.abs(diffX) > minDist) dir = diffX > 0 ? 'RIGHT' : 'LEFT';
                 } else {
-                    if (Math.abs(diffY) > minDist) swipedDir = diffY > 0 ? 'DOWN' : 'UP';
+                    if (Math.abs(diffY) > minDist) dir = diffY > 0 ? 'DOWN' : 'UP';
                 }
-
-                if (swipedDir) {
-                    if (swipedDir === target.label) {
-                        // Success!
-                    } else {
-                        this.isWrong = true;
-                    }
+                if (dir) {
+                    swipedDir = dir;
+                    if (swipedDir !== target.label) this.isWrong = true;
                 }
             };
+
+            container.querySelectorAll('.cg-arrow-opt').forEach(btn => {
+                btn.onclick = () => {
+                    swipedDir = btn.dataset.dir;
+                    if (swipedDir !== target.label) this.isWrong = true;
+                };
+            });
         },
         verify() { return swipedDir === target.label; }
     };
@@ -2160,11 +2220,11 @@ export function getRandomGame() {
         imageEqualityGame, colorWordGame, numberComparisonGame, visualMemoryGame,
         oddOneOutGame, shapeSilhouetteGame, dotCounterGame, patternSequenceGame,
         vectorPathGame, arrowDirectionGame, shapeMathGame, sizeComparisonGame,
-        rotationMatchGame, shapeSymmetryGame, countByShapeGame, colorGridGame,
-        wordUnscrambleGame, wordCategoryGame, missingLetterGame, numberSequenceGame,
-        equationSolverGame, rhymeFinderGame, anagramCheckGame, wordLengthGame,
-        pixelPatternGame, jigsawQuadrantGame, brokenTileGame, wordHuntGame,
-        numberHuntGame, greenVsRedGame, swipeDirectionGame
+        rotationMatchGame, countByShapeGame,
+        wordUnscrambleGame, missingLetterGame, numberSequenceGame,
+        equationSolverGame, rhymeFinderGame, anagramCheckGame,
+        jigsawQuadrantGame, wordHuntGame,
+        numberFlashGame, greenVsRedGame, swipeDirectionGame
     ];
     return rnd(games)();
 }
