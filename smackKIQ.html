@@ -4,34 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>smackKIQ | Logic Challenges</title>
-    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/png" href="../logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
 </head>
 
 <body>
     <nav class="navbar glass">
         <div class="logo">
-            <img src="../logo.png" alt="SMACK" style="width: 32px; height: 32px; border-radius: 8px;">
-            <span>SMACK</span>
+            <img src="logo.png" alt="FOCUS" style="width: 32px; height: 32px; border-radius: 8px;">
+            <span>FOCUS</span>
         </div>
         <div class="nav-links">
-            <a href="../home.html">Home</a>
-            <a href="smackKIQ.html" class="active">smackKIQ</a>
-            <a href="../resources.html">Materials</a>
-            <a href="../profile.html" class="profile-link" style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main); font-weight: 600;">
-                <div id="nav-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: white;">U</div>
-                <span id="nav-user-name">Profile</span>
-            </a>
-            <a href="../index.html" class="logout"><i class="fas fa-sign-out-alt"></i></a>
+            <a href="index.html">Home</a>
+            <a href="smackKIQ.html" class="active">Arcade</a>
+            <a href="index.html" class="logout"><i class="fas fa-sign-out-alt"></i></a>
         </div>
     </nav>
 
     <header class="app-header glass">
         <div style="display: flex; align-items: center; gap: 0.8rem;">
-            <a href="../home.html" style="color: white; font-size: 1.1rem; margin-right: 0.5rem;"><i class="fas fa-arrow-left"></i></a>
-            <img src="../logo.png" alt="SMACK" style="width: 32px; height: 32px; border-radius: 6px;">
-            <h2 style="font-family: 'Outfit'; font-size: 1.2rem;">smackKIQ</h2>
+            <a href="index.html" style="color: white; font-size: 1.1rem; margin-right: 0.5rem;"><i class="fas fa-arrow-left"></i></a>
+            <img src="logo.png" alt="FOCUS" style="width: 32px; height: 32px; border-radius: 6px;">
+            <h2 style="font-family: 'Outfit'; font-size: 1.2rem;">FOCUS Arcade</h2>
         </div>
         <div class="points-display glass" style="padding: 0.4rem 1rem; border-radius: 20px; display: flex; align-items: center; gap: 0.6rem; background: rgba(99, 102, 241, 0.15);">
             <i class="fas fa-trophy" style="color: #fbbf24;"></i>
@@ -98,15 +93,14 @@
 
     <!-- Mobile Nav Foot (Sync with Home) -->
     <div class="mobile-nav-foot glass">
-        <a href="../home.html"><i class="fas fa-home"></i><span>Home</span></a>
-        <a href="smackKIQ.html" class="active"><i class="fas fa-brain"></i><span>smackKIQ</span></a>
-        <a href="../resources.html"><i class="fas fa-file-alt"></i><span>Notes</span></a>
-        <a href="../profile.html"><i class="fas fa-user-circle"></i><span>Profile</span></a>
+        <a href="index.html"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="smackKIQ.html" class="active"><i class="fas fa-brain"></i><span>Arcade</span></a>
+        <a href="index.html"><i class="fas fa-user-circle"></i><span>Profile</span></a>
     </div>
 
-    <script type="module" src="../firebase-config.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <script type="module">
-        import { auth, fs, doc, getDoc } from "../firebase-config.js";
+        import { auth, fs, doc, getDoc } from "./firebase-config.js";
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
         onAuthStateChanged(auth, async (user) => {

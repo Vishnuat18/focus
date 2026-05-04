@@ -1,4 +1,4 @@
-import { auth, fs, doc, getDoc, updateDoc, increment } from "../firebase-config.js";
+import { auth, fs, doc, getDoc, updateDoc, increment } from "./firebase-config.js";
 import { 
     imageEqualityGame, colorWordGame, numberComparisonGame, visualMemoryGame,
     oddOneOutGame, shapeSilhouetteGame, dotCounterGame, patternSequenceGame,

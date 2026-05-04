@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOCUS | The Ultimate Reflex Arcade</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        body {
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .hero-section {
+            text-align: center;
+            padding: 2rem;
+            max-width: 800px;
+            z-index: 10;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .hero-logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 0 50px rgba(99, 102, 241, 0.3);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff 0%, #818cf8 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -2px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-large {
+            padding: 1.2rem 2.5rem;
+            font-size: 1.1rem;
+            border-radius: 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 800;
+        }
+
+        .btn-primary-glow {
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            color: white;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary-glow:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.6);
+        }
+
+        .btn-secondary-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-secondary-glass:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 5rem;
+            width: 100%;
+            max-width: 1000px;
+            padding: 0 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            text-align: center;
+            border-radius: 20px;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #818cf8, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .feature-card h3 { margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .feature-card p { font-size: 0.85rem; color: var(--text-muted); }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title { font-size: 2.8rem; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Ambient background glow */
+        .glow-orb {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+            filter: blur(60px);
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-orb" style="top: -100px; left: -100px;"></div>
+    <div class="glow-orb" style="bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%);"></div>
+
+    <main class="hero-section">
+        <img src="logo.png" alt="FOCUS Logo" class="hero-logo">
+        <h1 class="hero-title">FOCUS</h1>
+        <p class="hero-subtitle">
+            The ultimate logic & reflex arcade. Master 30+ unique challenges, 
+            sharpen your cognitive speed, and climb the global leaderboard.
+        </p>
+
+        <div class="cta-group">
+            <a href="smackKIQ.html" class="btn-large btn-primary-glow">
+                <span>ENTER ARCADE</span>
+                <i class="fas fa-play-circle"></i>
+            </a>
+            <a href="#features" class="btn-large btn-secondary-glass">
+                <span>FEATURES</span>
+                <i class="fas fa-sparkles"></i>
+            </a>
+        </div>
+
+        <div class="features-grid" id="features">
+            <div class="feature-card glass">
+                <i class="fas fa-bolt feature-icon"></i>
+                <h3>Rapid Reflex</h3>
+                <p>Test your reaction time with sub-millisecond precision challenges.</p>
+            </div>
+            <div class="feature-card glass">
+                <i class="fas fa-brain feature-icon"></i>
+                <h3>Cognitive Logic</h3>
+                <p>30+ unique games designed to stretch your analytical thinking.</p>
+            </div>
+            <div class="feature-card glass">
+                <i class="fas fa-trophy feature-icon"></i>
+                <h3>XP Rewards</h3>
+                <p>Earn XP for every victory and unlock premium arcade badges.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer style="margin-top: 5rem; padding: 2rem; color: var(--text-muted); font-size: 0.8rem; z-index: 10;">
+        &copy; 2026 FOCUS Arcade | Part of the SMACK Ecosystem
+    </footer>
+
+    <script type="module">
+        import { auth } from "./firebase-config.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // If logged in, maybe change button text or redirect?
+                // For now, we'll just let them click Enter.
+                console.log("User logged in:", user.email);
+            }
+        });
+    </script>
+</body>
+</html>
