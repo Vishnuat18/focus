@@ -25,7 +25,12 @@ const UI = {
     flash: document.getElementById('flash-overlay'),
     finalScore: document.getElementById('final-score'),
     newBest: document.getElementById('new-best-score'),
-    bestBox: document.getElementById('high-score-box')
+    bestBox: document.getElementById('high-score-box'),
+    instructionScreen: document.getElementById('instruction-screen'),
+    instrGameName: document.getElementById('instr-game-name'),
+    instrText: document.getElementById('instr-text'),
+    startGameBtn: document.getElementById('start-game-btn'),
+    loadingScreen: document.getElementById('loading-screen')
 };
 
 // ─── Sounds (Subtle) ──────────────────────────────────────────────────────────
@@ -61,6 +66,39 @@ UI.area.addEventListener('click', (e) => {
     }
 });
 
+window.prepareGame = async function(mode, gameId = null) {
+    gameState.mode = mode;
+    gameState.focusGameId = gameId !== null ? parseInt(gameId) : null;
+    
+    UI.overlay.classList.add('active');
+    UI.loadingScreen.style.display = 'none';
+    UI.startScreen.style.display = 'none';
+    UI.gameOverScreen.style.display = 'none';
+    UI.instructionScreen.style.display = 'block';
+
+    if (mode === 'focus' && gameState.focusGameId !== null) {
+        const gData = GAME_MAP.find(g => g.id === gameState.focusGameId);
+        if (gData) {
+            UI.instrGameName.textContent = gData.name;
+            // Use the icon from GAME_MAP
+            document.getElementById('instr-icon').innerHTML = `<i class="fas ${gData.icon}"></i>`;
+            // Temporary instance to get the title
+            const temp = gData.fn();
+            UI.instrText.textContent = temp.title || "Solve the challenge as fast as possible!";
+        }
+    } else {
+        UI.instrGameName.textContent = mode === 'endless' ? "Endless Mode" : "Random Chaos";
+        document.getElementById('instr-icon').innerHTML = `<i class="fas ${mode === 'endless' ? 'fa-infinity' : 'fa-random'}"></i>`;
+        UI.instrText.textContent = mode === 'endless' 
+            ? "Survive as long as possible. One mistake and it's over!" 
+            : "A rapid-fire sequence of random challenges. Stay focused!";
+    }
+};
+
+UI.startGameBtn.onclick = () => {
+    startReflexGame(gameState.mode, gameState.focusGameId);
+};
+
 window.startReflexGame = async function(mode, gameId = null) {
     try {
         gameState.mode = mode;
@@ -73,6 +111,7 @@ window.startReflexGame = async function(mode, gameId = null) {
 
         UI.overlay.classList.remove('active');
         UI.startScreen.style.display = 'none';
+        UI.instructionScreen.style.display = 'none';
         UI.gameOverScreen.style.display = 'none';
         UI.score.textContent = "0";
 
@@ -267,16 +306,27 @@ async function saveHighScore(key) {
 // ─── Initialization ──────────────────────────────────────────────────────────
 auth.onAuthStateChanged(user => {
     if (user) {
+        // Initial state: show loading for a moment
+        UI.overlay.classList.add('active');
+        UI.loadingScreen.style.display = 'flex';
+        UI.startScreen.style.display = 'none';
+        UI.instructionScreen.style.display = 'none';
+        UI.gameOverScreen.style.display = 'none';
+
         // Check for URL parameters to auto-start a mode
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode');
         const gameId = params.get('gameId');
 
-        if (mode) {
-            startReflexGame(mode, gameId !== null ? parseInt(gameId) : null);
-        } else {
-            updateStartMenuHighScores();
-        }
+        setTimeout(() => {
+            if (mode) {
+                prepareGame(mode, gameId !== null ? parseInt(gameId) : null);
+            } else {
+                UI.loadingScreen.style.display = 'none';
+                UI.startScreen.style.display = 'block';
+                updateStartMenuHighScores();
+            }
+        }, 800); // Artificial delay for smoothness
     } else {
         window.location.href = "index.html";
     }
