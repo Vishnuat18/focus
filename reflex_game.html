@@ -179,6 +179,35 @@
         #reflex-overlay > div {
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
+
+        /* Premium Keypad Styles */
+        .cg-num-btn, .cg-choice-btn {
+            background: rgba(255, 255, 255, 0.06) !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 14px !important;
+            color: white !important;
+            font-family: 'Outfit', sans-serif !important;
+            font-weight: 900 !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .cg-num-btn:hover, .cg-choice-btn:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.25) !important;
+        }
+        .cg-num-btn:active, .cg-choice-btn:active {
+            transform: scale(0.95);
+        }
+        .cg-num-btn.selected, .cg-choice-btn.selected {
+            background: rgba(99, 102, 241, 0.2) !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
     </style>
 </head>
 

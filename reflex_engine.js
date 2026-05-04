@@ -1,11 +1,10 @@
-import { auth, fs, doc, getDoc, updateDoc, increment, setDoc } from "../firebase-config.js";
 import { GAME_MAP } from "./smackkiq.js";
 
 // ─── Game State ───────────────────────────────────────────────────────────────
 let gameState = {
     mode: null, // 'endless', 'focus', 'random'
     score: 0,
-    highScore: 0,
+    highScores: {},
     timer: 0,
     isActive: false,
     currentLevel: 1,
@@ -19,7 +18,7 @@ const UI = {
     startScreen: document.getElementById('start-screen'),
     gameOverScreen: document.getElementById('game-over-screen'),
     score: document.getElementById('current-score'),
-    best: document.getElementById('best-score'),
+    bestScore: document.getElementById('best-score'),
     timerContainer: document.getElementById('timer-container'),
     timer: document.getElementById('game-timer'),
     flash: document.getElementById('flash-overlay'),
@@ -50,14 +49,13 @@ function playSound(type) {
 // ─── Core Loop ────────────────────────────────────────────────────────────────
 
 // Delegated Listener for Reflex Input
-UI.area.addEventListener('click', (e) => {
+UI.area?.addEventListener('click', (e) => {
     if (!gameState.isActive) return;
     
     const selectors = '.cg-choice-btn, .cg-color-btn, .cg-num-btn, .cg-mem-cell, .cg-shape-opt, .cg-pixel-cell, .cg-word-opt, .cg-word-btn, .cg-jig-opt, .cg-btile, .cg-dot-opt, .cg-odd-cell, .cg-arrow-opt, .cg-vector-opt, .cg-size-btn, .cg-rot-btn, .cg-math-opt';
     const target = e.target.closest(selectors);
     
     if (target) {
-        // We wait a tiny bit to allow the element's own onclick to update game state
         setTimeout(() => {
             if (gameState.gameInstance) {
                 handleResult(gameState.gameInstance.verify(), gameState.gameInstance);
@@ -80,9 +78,7 @@ window.prepareGame = async function(mode, gameId = null) {
         const gData = GAME_MAP.find(g => g.id === gameState.focusGameId);
         if (gData) {
             UI.instrGameName.textContent = gData.name;
-            // Use the icon from GAME_MAP
             document.getElementById('instr-icon').innerHTML = `<i class="fas ${gData.icon}"></i>`;
-            // Temporary instance to get the title
             const temp = gData.fn();
             UI.instrText.textContent = temp.title || "Solve the challenge as fast as possible!";
         }
@@ -115,7 +111,6 @@ window.startReflexGame = async function(mode, gameId = null) {
         UI.gameOverScreen.style.display = 'none';
         UI.score.textContent = "0";
 
-        // Always 30s Blitz style
         gameState.timer = 30.0;
         UI.timerContainer.style.display = 'block';
         startTimer();
@@ -127,16 +122,15 @@ window.startReflexGame = async function(mode, gameId = null) {
 };
 
 async function updateStartMenuHighScores() {
-    const user = auth.currentUser;
-    if (!user) return;
-    const userRef = doc(fs, "users", user.uid);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-        const data = userDoc.data();
-        document.getElementById('best-endless').textContent = data.reflex_best_endless || 0;
-        document.getElementById('best-focus').textContent = data.reflex_best_focus || 0;
-        document.getElementById('best-random').textContent = data.reflex_best_random || 0;
-    }
+    const saved = localStorage.getItem('focus_reflex_scores');
+    const scores = saved ? JSON.parse(saved) : {};
+    
+    if (document.getElementById('best-endless')) 
+        document.getElementById('best-endless').textContent = scores['best_endless'] || 0;
+    if (document.getElementById('best-focus')) 
+        document.getElementById('best-focus').textContent = scores['best_focus_null'] || 0;
+    if (document.getElementById('best-random')) 
+        document.getElementById('best-random').textContent = scores['best_random'] || 0;
 }
 
 function loadNextChallenge() {
@@ -161,19 +155,16 @@ function loadNextChallenge() {
 
             const game = gData.fn();
             gameState.gameInstance = game;
-            
             game.render(UI.area);
-            // No longer need attachReflexListeners due to delegation
 
             UI.area.style.transform = 'scale(1)';
             UI.area.style.opacity = '1';
         } catch (err) {
             console.error("Error loading challenge:", err);
-            loadNextChallenge(); // Skip broken game
+            loadNextChallenge(); 
         }
     }, 10);
 }
-
 
 function handleResult(isCorrect, game) {
     if (!gameState.isActive) return;
@@ -185,14 +176,12 @@ function handleResult(isCorrect, game) {
         flashScreen('success');
         loadNextChallenge();
     } else if (game && game.isWrong) {
-        // Only fail (shake/skip) if definitively wrong
         playSound('error');
         flashScreen('error');
         shakeGameArea();
         if (navigator.vibrate) navigator.vibrate(200);
         loadNextChallenge();
     }
-    // Else: it's false but not wrong (incomplete), so do nothing.
 }
 
 function shakeGameArea() {
@@ -209,9 +198,8 @@ function flashScreen(type) {
 function startTimer() {
     if (window.reflexTimer) clearInterval(window.reflexTimer);
     window.reflexTimer = setInterval(() => {
-        if (!gameState.isActive || gameState.mode !== 'focus') {
-            clearInterval(window.reflexTimer);
-            return;
+        if (!gameState.isActive || (gameState.mode !== 'focus' && gameState.mode !== 'random' && gameState.mode !== 'endless')) {
+            // Note: Endless mode might not use this timer, but for now we follow the 30s Blitz style as requested earlier
         }
 
         gameState.timer -= 0.1;
@@ -234,13 +222,13 @@ async function endGame(msg = "Game Over") {
     playSound('error');
     flashScreen('error');
 
+    const bestKey = gameState.mode === 'focus' ? `best_focus_${gameState.focusGameId}` : `best_${gameState.mode}`;
     let isNewBest = false;
-    const bestKey = `reflex_best_${gameState.mode === 'focus' ? `focus_${gameState.focusGameId}` : gameState.mode}`;
     
     if (gameState.score > (gameState.highScores[bestKey] || 0)) {
         gameState.highScores[bestKey] = gameState.score;
         isNewBest = true;
-        await saveHighScore(bestKey);
+        await saveHighScore();
     }
 
     UI.overlay.classList.add('active');
@@ -269,65 +257,40 @@ window.exitToMenu = function() {
 };
 
 // ─── Data Management ─────────────────────────────────────────────────────────
-gameState.highScores = {};
-
-async function loadHighScore() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const userRef = doc(fs, "users", user.uid);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-        gameState.highScores = userDoc.data().reflex_scores || {};
-        const bestKey = `reflex_best_${gameState.mode === 'focus' ? `focus_${gameState.focusGameId}` : gameState.mode}`;
-        UI.best.textContent = gameState.highScores[bestKey] || 0;
-    }
+async function saveHighScore() {
+    localStorage.setItem('focus_reflex_scores', JSON.stringify(gameState.highScores));
 }
 
-async function saveHighScore(key) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const userRef = doc(fs, "users", user.uid);
-    await setDoc(userRef, {
-        reflex_scores: gameState.highScores
-    }, { merge: true });
-
-    if (gameState.mode === 'random') {
-        const lbRef = doc(fs, "reflex_leaderboard", user.uid);
-        await setDoc(lbRef, {
-            name: user.displayName || user.email.split('@')[0],
-            score: gameState.highScores[key],
-            updatedAt: Date.now()
-        }, { merge: true });
+async function loadHighScore() {
+    const saved = localStorage.getItem('focus_reflex_scores');
+    if (saved) {
+        gameState.highScores = JSON.parse(saved);
     }
+    const key = gameState.mode === 'focus' ? `best_focus_${gameState.focusGameId}` : `best_${gameState.mode}`;
+    UI.bestScore.textContent = gameState.highScores[key] || 0;
 }
 
 // ─── Initialization ──────────────────────────────────────────────────────────
-auth.onAuthStateChanged(user => {
-    if (user) {
-        // Initial state: show loading for a moment
-        UI.overlay.classList.add('active');
-        UI.loadingScreen.style.display = 'flex';
-        UI.startScreen.style.display = 'none';
-        UI.instructionScreen.style.display = 'none';
-        UI.gameOverScreen.style.display = 'none';
+function initReflexGame() {
+    UI.overlay.classList.add('active');
+    UI.loadingScreen.style.display = 'flex';
+    UI.startScreen.style.display = 'none';
+    UI.instructionScreen.style.display = 'none';
+    UI.gameOverScreen.style.display = 'none';
 
-        // Check for URL parameters to auto-start a mode
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode');
-        const gameId = params.get('gameId');
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const gameId = params.get('gameId');
 
-        setTimeout(() => {
-            if (mode) {
-                prepareGame(mode, gameId !== null ? parseInt(gameId) : null);
-            } else {
-                UI.loadingScreen.style.display = 'none';
-                UI.startScreen.style.display = 'block';
-                updateStartMenuHighScores();
-            }
-        }, 800); // Artificial delay for smoothness
-    } else {
-        window.location.href = "index.html";
-    }
-});
+    setTimeout(() => {
+        if (mode) {
+            prepareGame(mode, gameId !== null ? parseInt(gameId) : null);
+        } else {
+            UI.loadingScreen.style.display = 'none';
+            UI.startScreen.style.display = 'block';
+            updateStartMenuHighScores();
+        }
+    }, 600);
+}
+
+initReflexGame();

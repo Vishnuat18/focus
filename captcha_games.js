@@ -1921,24 +1921,53 @@ export function wordHuntGame() {
     };
 }
 
-// ─── Game 29: Number Hunt (Find 0-9) ──────────────────────────────────────────
-export function numberHuntGame() {
-    const target = Math.floor(Math.random() * 10);
-    const options = shuffle([0,1,2,3,4,5,6,7,8,9]);
+// ─── Game 29: Number Flash (Find the Target) ──────────────────────────────────
+export function numberFlashGame() {
+    const target = Math.floor(Math.random() * 9) + 1; // 1-9
+    // Pick 9 unique numbers including the target
+    const pool = [1,2,3,4,5,6,7,8,9];
+    const options = shuffle(pool);
     let userAnswer = null;
 
     return {
-        title: `TAP THE NUMBER: ${target}`,
+        title: ``, // We'll show the target in a big box instead of the title string
         render(container) {
             container.innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;">
-                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;">
-                        ${options.map((n, i) => `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;width:100%;">
+                    <!-- Target Bar -->
+                    <div style="
+                        width:100%; max-width:240px; 
+                        background:rgba(255,255,255,0.06); 
+                        border:2px solid rgba(255,255,255,0.15);
+                        border-radius:20px; 
+                        padding:1.5rem; 
+                        text-align:center;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                        margin-bottom: 0.5rem;
+                    ">
+                        <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); letter-spacing:2px; font-weight:900; margin-bottom:0.5rem;">TARGET</div>
+                        <div style="font-size:3.5rem; font-weight:900; color:white; font-family:'Outfit'; line-height:1;">${target}</div>
+                    </div>
+
+                    <!-- 3x3 Grid -->
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:fit-content; padding:10px;">
+                        ${options.map((n) => `
                             <button class="cg-num-btn" data-val="${n}" style="
-                                padding:0.8rem; border-radius:12px;
-                                background:rgba(255,255,255,0.05); border:1.5px solid rgba(255,255,255,0.1);
-                                color:white; font-family:'Outfit',sans-serif; font-weight:800;
-                                font-size:1.2rem; cursor:pointer; transition:all 0.2s;">
+                                width:75px; height:75px;
+                                border-radius:18px;
+                                background: rgba(255,255,255,0.06);
+                                border: 1.5px solid rgba(255,255,255,0.12);
+                                color: white;
+                                font-family: 'Outfit', sans-serif;
+                                font-weight: 900;
+                                font-size: 1.8rem;
+                                cursor: pointer;
+                                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                            ">
                                 ${n}
                             </button>`).join('')}
                     </div>
@@ -1948,8 +1977,7 @@ export function numberHuntGame() {
                 btn.onclick = () => {
                     userAnswer = parseInt(btn.dataset.val);
                     if (userAnswer !== target) this.isWrong = true;
-                    container.querySelectorAll('.cg-num-btn').forEach(b => b.style.borderColor = 'rgba(255,255,255,0.1)');
-                    btn.style.borderColor = '#6366f1';
+                    // Note: reflex_engine will handle the correct answer and trigger a reload
                 };
             });
         },

@@ -7,7 +7,7 @@ import {
     wordCategoryGame, missingLetterGame, numberSequenceGame, equationSolverGame,
     rhymeFinderGame, anagramCheckGame, wordLengthGame, pixelPatternGame,
     jigsawQuadrantGame, brokenTileGame, arrowDirectionGame, wordHuntGame,
-    numberHuntGame, greenVsRedGame, swipeDirectionGame
+    numberFlashGame, greenVsRedGame, swipeDirectionGame
 } from "./captcha_games.js";
 
 export const GAME_MAP = [
@@ -38,7 +38,7 @@ export const GAME_MAP = [
     { id: 24, name: "Broken Tile",      fn: brokenTileGame,       icon: "fa-border-none", reflex: true },
     { id: 25, name: "Reflex Point",     fn: arrowDirectionGame,   icon: "fa-location-arrow", reflex: true },
     { id: 26, name: "Word Hunt",        fn: wordHuntGame,         icon: "fa-search", reflex: true },
-    { id: 27, name: "Number Flash",     fn: numberHuntGame,       icon: "fa-hashtag", reflex: true },
+    { id: 27, name: "Number Flash",     fn: numberFlashGame,      icon: "fa-hashtag", reflex: true },
     { id: 28, name: "Green Rush",       fn: greenVsRedGame,       icon: "fa-traffic-light", reflex: true },
     { id: 29, name: "Swift Swipe",      fn: swipeDirectionGame,   icon: "fa-hand-point-right", reflex: true }
 ];
@@ -48,31 +48,19 @@ let currentPoints = 0;
 
 export async function initSmackKIQ() {
     console.log("Initializing smackKIQ Dashboard...");
-    // Use new ID with fallback to class-based selector
     const grid = document.getElementById('reflex-game-grid') || document.querySelector('.game-grid');
     
     if (!grid) {
-        console.error("Game grid container not found! Check if smackKIQ.html is loaded correctly.");
+        console.error("Game grid container not found!");
         return;
     }
 
-    // Load points from Firestore
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            try {
-                const userRef = doc(fs, "users", user.uid);
-                const userDoc = await getDoc(userRef);
-                if (userDoc.exists()) {
-                    currentPoints = userDoc.data().points || 0;
-                    updatePointsUI();
-                }
-            } catch (err) {
-                console.error("Error loading user points:", err);
-            }
-        }
-    });
+    // Load points locally for guest experience
+    const localPoints = localStorage.getItem('focus_xp') || 0;
+    currentPoints = parseInt(localPoints);
+    updatePointsUI();
 
-    // Render Grid with Mobile-Ready Row Format
+    // Render Grid
     try {
         grid.innerHTML = GAME_MAP.map(g => `
             <div class="game-card glass" onclick="window.location.href='reflex_game.html?mode=focus&gameId=${g.id}'">
@@ -87,7 +75,6 @@ export async function initSmackKIQ() {
                 </div>
             </div>
         `).join('');
-        console.log(`Rendered ${GAME_MAP.length} games.`);
     } catch (err) {
         console.error("Error rendering game grid:", err);
     }
@@ -95,14 +82,6 @@ export async function initSmackKIQ() {
     // Modal Events
     document.getElementById('cg-close')?.addEventListener('click', closeKIQModal);
     document.getElementById('cg-verify-btn')?.addEventListener('click', verifyKIQGame);
-    document.getElementById('cg-skip-btn')?.addEventListener('click', () => {
-        if (currentGameId !== null) window.playKIQGame(currentGameId);
-    });
-    document.getElementById('cg-focus-btn')?.addEventListener('click', () => {
-        if (currentGameId !== null) {
-            window.location.href = `reflex_game.html?mode=focus&gameId=${currentGameId}`;
-        }
-    });
 }
 
 let currentGameId = null;
@@ -114,19 +93,10 @@ window.playKIQGame = function(id) {
     currentGameId = id;
     const backdrop = document.getElementById('captcha-backdrop');
     const gameArea = document.getElementById('cg-game-area');
-    const msg = document.getElementById('cg-msg');
     const label = document.getElementById('cg-game-label');
-    const stepLabel = document.getElementById('cg-step-label');
-    const progress = document.getElementById('cg-progress');
-    const verifyBtn = document.getElementById('cg-verify-btn');
 
     backdrop.classList.add('open');
-    msg.textContent = "";
-    msg.className = "";
-    label.textContent = "smackKIQ Challenge: " + g.name;
-    stepLabel.textContent = "Practice Mode";
-    progress.innerHTML = ""; // No progress dots in practice mode
-    verifyBtn.innerHTML = '<i class="fas fa-check-circle"></i> Verify Answer';
+    label.textContent = "Challenge: " + g.name;
 
     gameArea.innerHTML = "";
     currentGame = g.fn();
@@ -134,7 +104,7 @@ window.playKIQGame = function(id) {
 };
 
 function closeKIQModal() {
-    document.getElementById('captcha-backdrop').classList.remove('open');
+    document.getElementById('captcha-backdrop')?.classList.remove('open');
 }
 
 async function verifyKIQGame() {
@@ -145,25 +115,9 @@ async function verifyKIQGame() {
         msg.textContent = "✔ Correct! +10 XP earned.";
         msg.className = "success";
         
-        // Award Points
-        const user = auth.currentUser;
-        if (user) {
-            const userRef = doc(fs, "users", user.uid);
-            await updateDoc(userRef, {
-                points: increment(10)
-            });
-            currentPoints += 10;
-            updatePointsUI();
-            
-            // Success animation for points
-            const pointsDisplay = document.getElementById('points-val');
-            pointsDisplay.style.color = "#10b981";
-            pointsDisplay.style.transform = "scale(1.2)";
-            setTimeout(() => {
-                pointsDisplay.style.color = "";
-                pointsDisplay.style.transform = "";
-            }, 1000);
-        }
+        currentPoints += 10;
+        localStorage.setItem('focus_xp', currentPoints);
+        updatePointsUI();
 
         setTimeout(closeKIQModal, 1500);
     } else {
@@ -179,5 +133,4 @@ function updatePointsUI() {
     if (pVal) pVal.textContent = currentPoints;
 }
 
-// Call directly since modules are deferred and DOM is ready
 initSmackKIQ();
